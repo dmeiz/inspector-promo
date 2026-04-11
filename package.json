@@ -1,0 +1,15 @@
+{
+  "name": "inspector-promo",
+  "version": "1.0.0",
+  "description": "Promo product data inspector — look up product data across all systems in one place",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/server.test.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
+  }
+}
