@@ -36,6 +36,22 @@ app.get('/api/lookup/:id', async (req, res) => {
   }
 });
 
+// Redshift data route — run all configured queries for a product
+app.get('/api/redshift/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const results = {};
+    const queries = config.redshiftQueries.map(async ({ name, sql }) => {
+      const result = await pool.query(sql, [id]);
+      results[name] = result.rows;
+    });
+    await Promise.all(queries);
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Only start listening if this file is run directly (not required by tests)
 if (require.main === module) {
   app.listen(port, () => {
