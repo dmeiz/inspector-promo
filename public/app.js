@@ -4,8 +4,10 @@ const resultsEl = document.getElementById('results');
 const identityContent = document.getElementById('identity-content');
 const disambiguationEl = document.getElementById('disambiguation');
 const linksContent = document.getElementById('links-content');
-const redshiftLoading = document.getElementById('redshift-loading');
-const redshiftContent = document.getElementById('redshift-content');
+const fpdbLoading = document.getElementById('fpdb-loading');
+const fpdbContent = document.getElementById('fpdb-content');
+const mmsLoading = document.getElementById('mms-loading');
+const mmsContent = document.getElementById('mms-content');
 const fpsLoading = document.getElementById('fps-loading');
 const fpsTabs = document.getElementById('fps-tabs');
 const fpsTabNav = document.getElementById('fps-tab-nav');
@@ -25,8 +27,10 @@ function resetResults() {
   disambiguationEl.innerHTML = '';
   disambiguationEl.classList.add('hidden');
   linksContent.innerHTML = '';
-  redshiftContent.innerHTML = '';
-  redshiftLoading.classList.add('hidden');
+  fpdbContent.innerHTML = '';
+  fpdbLoading.classList.add('hidden');
+  mmsContent.innerHTML = '';
+  mmsLoading.classList.add('hidden');
   fpsTabNav.innerHTML = '';
   fpsTabContent.innerHTML = '';
   fpsTabs.classList.add('hidden');
@@ -67,23 +71,36 @@ async function doLookup(id) {
 }
 
 function showProduct(match) {
+  const rows = [
+    ['Product ID', match.product_id],
+    ['Supplier', match.supplier_name],
+  ];
+  if (match.product_name) rows.push(['Product Name', match.product_name]);
+  if (match.style_id) rows.push(['Style ID', match.style_id]);
+
   identityContent.innerHTML = `
     <table>
-      <tr><td>Product ID</td><td>${match.product_id}</td></tr>
-      <tr><td>Style ID</td><td>${match.style_id}</td></tr>
-      <tr><td>Supplier</td><td>${match.supplier_name}</td></tr>
+      ${rows.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}
     </table>
   `;
 
   const productId = match.product_id;
-  fetchLinks(productId);
-  fetchRedshift(productId);
-  fetchFps(productId);
+  const styleId = match.style_id;
+  const provider = match.supplier_name;
+  fetchLinks(productId, styleId);
+  fetchFpdb(productId);
+  if (styleId) {
+    fetchMms(styleId);
+  } else {
+    mmsContent.innerHTML = '<span class="no-data">No style ID available — MMS data requires a style ID</span>';
+  }
+  fetchFps(productId, provider);
 }
 
-async function fetchLinks(productId) {
+async function fetchLinks(productId, styleId) {
   try {
-    const res = await fetch(`/api/links/${encodeURIComponent(productId)}`);
+    const params = styleId ? `?style_id=${encodeURIComponent(styleId)}` : '';
+    const res = await fetch(`/api/links/${encodeURIComponent(productId)}${params}`);
     const data = await res.json();
     linksContent.innerHTML = '';
     data.links.forEach(({ name, url }) => {
@@ -99,43 +116,52 @@ async function fetchLinks(productId) {
   }
 }
 
-async function fetchRedshift(productId) {
-  redshiftLoading.classList.remove('hidden');
-  redshiftContent.innerHTML = '';
-  try {
-    const res = await fetch(`/api/redshift/${encodeURIComponent(productId)}`);
-    const data = await res.json();
-    redshiftLoading.classList.add('hidden');
+function fetchDataSection(endpoint, id, loadingEl, contentEl, label) {
+  loadingEl.classList.remove('hidden');
+  contentEl.innerHTML = '';
+  return fetch(`/api/${endpoint}/${encodeURIComponent(id)}`)
+    .then((res) => res.json())
+    .then((data) => {
+      loadingEl.classList.add('hidden');
 
-    if (data.error) {
-      redshiftContent.innerHTML = `<span class="error-message">Redshift error: ${data.error}</span>`;
-      return;
-    }
-
-    for (const [name, rows] of Object.entries(data)) {
-      const section = document.createElement('div');
-      section.className = 'redshift-query';
-
-      const h3 = document.createElement('h3');
-      h3.textContent = name;
-      h3.addEventListener('click', () => section.classList.toggle('collapsed'));
-      section.appendChild(h3);
-
-      if (rows.length === 0) {
-        const noData = document.createElement('div');
-        noData.className = 'no-data';
-        noData.textContent = 'No data found';
-        section.appendChild(noData);
-      } else {
-        section.appendChild(buildTable(rows));
+      if (data.error) {
+        contentEl.innerHTML = `<span class="error-message">${label} error: ${data.error}</span>`;
+        return;
       }
 
-      redshiftContent.appendChild(section);
-    }
-  } catch (err) {
-    redshiftLoading.classList.add('hidden');
-    redshiftContent.innerHTML = `<span class="error-message">Failed to load Redshift data: ${err.message}</span>`;
-  }
+      for (const [name, rows] of Object.entries(data)) {
+        const section = document.createElement('div');
+        section.className = 'redshift-query';
+
+        const h3 = document.createElement('h3');
+        h3.textContent = name;
+        h3.addEventListener('click', () => section.classList.toggle('collapsed'));
+        section.appendChild(h3);
+
+        if (rows.length === 0) {
+          const noData = document.createElement('div');
+          noData.className = 'no-data';
+          noData.textContent = 'No data found';
+          section.appendChild(noData);
+        } else {
+          section.appendChild(buildTable(rows));
+        }
+
+        contentEl.appendChild(section);
+      }
+    })
+    .catch((err) => {
+      loadingEl.classList.add('hidden');
+      contentEl.innerHTML = `<span class="error-message">Failed to load ${label} data: ${err.message}</span>`;
+    });
+}
+
+function fetchFpdb(productId) {
+  return fetchDataSection('fpdb', productId, fpdbLoading, fpdbContent, 'FPDB');
+}
+
+function fetchMms(styleId) {
+  return fetchDataSection('mms', styleId, mmsLoading, mmsContent, 'MMS');
 }
 
 function buildTable(rows) {
@@ -194,11 +220,12 @@ function buildRow(row, columns) {
   return tr;
 }
 
-async function fetchFps(productId) {
+async function fetchFps(productId, provider) {
   fpsLoading.classList.remove('hidden');
   fpsTabs.classList.add('hidden');
   try {
-    const res = await fetch(`/api/fps/${encodeURIComponent(productId)}`);
+    const params = provider ? `?provider=${encodeURIComponent(provider)}` : '';
+    const res = await fetch(`/api/fps/${encodeURIComponent(productId)}${params}`);
     const data = await res.json();
     fpsLoading.classList.add('hidden');
 

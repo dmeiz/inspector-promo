@@ -38,9 +38,8 @@ describe('server', () => {
   });
 });
 
-describe('GET /api/redshift/:id', () => {
+describe('GET /api/fpdb/:id', () => {
   it('returns query results keyed by query name', async () => {
-    // Mock pg Pool to return fake data
     const Module = require('module');
     const originalRequire = Module.prototype.require;
 
@@ -58,16 +57,47 @@ describe('GET /api/redshift/:id', () => {
       return originalRequire.apply(this, arguments);
     };
 
-    // Clear module cache so server picks up the mock
     delete require.cache[require.resolve('../server')];
     const app = require('../server');
-    const res = await request(app, '/api/redshift/ABC123');
+    const res = await request(app, '/api/fpdb/ABC123');
 
-    // Restore original require
     Module.prototype.require = originalRequire;
 
     assert.strictEqual(res.status, 200);
-    const queryNames = config.redshiftQueries.map((q) => q.name);
+    const queryNames = config.fpdbQueries.map((q) => q.name);
+    for (const name of queryNames) {
+      assert.ok(Array.isArray(res.body[name]), `Expected array for "${name}"`);
+    }
+  });
+});
+
+describe('GET /api/mms/:id', () => {
+  it('returns query results keyed by query name', async () => {
+    const Module = require('module');
+    const originalRequire = Module.prototype.require;
+
+    Module.prototype.require = function(id) {
+      if (id === 'pg') {
+        return {
+          Pool: class {
+            query() {
+              return { rows: [{ style_id: 1000, product_id: 1001 }] };
+            }
+            end() {}
+          }
+        };
+      }
+      return originalRequire.apply(this, arguments);
+    };
+
+    delete require.cache[require.resolve('../server')];
+    const app = require('../server');
+    const res = await request(app, '/api/mms/ABC123');
+
+    Module.prototype.require = originalRequire;
+
+    assert.strictEqual(res.status, 200);
+    const queryNames = config.mmsQueries.map((q) => q.name);
     for (const name of queryNames) {
       assert.ok(Array.isArray(res.body[name]), `Expected array for "${name}"`);
     }
