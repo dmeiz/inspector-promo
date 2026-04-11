@@ -52,6 +52,30 @@ app.get('/api/redshift/:id', async (req, res) => {
   }
 });
 
+// FPS API proxy route — call all configured FPS endpoints for a product
+app.get('/api/fps/:id', async (req, res) => {
+  const { id } = req.params;
+  const baseUrl = process.env.FPS_BASE_URL || '';
+  try {
+    const results = {};
+    const calls = config.fpsEndpoints.map(async ({ name, path }) => {
+      const url = `${baseUrl}${path.replace('{id}', id)}`;
+      try {
+        const response = await fetch(url);
+        results[name] = response.ok
+          ? await response.json()
+          : { error: `HTTP ${response.status}`, url };
+      } catch (err) {
+        results[name] = { error: err.message, url };
+      }
+    });
+    await Promise.all(calls);
+    res.json(results);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Only start listening if this file is run directly (not required by tests)
 if (require.main === module) {
   app.listen(port, () => {

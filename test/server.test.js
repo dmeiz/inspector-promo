@@ -73,3 +73,46 @@ describe('GET /api/redshift/:id', () => {
     }
   });
 });
+
+describe('GET /api/fps/:id', () => {
+  it('returns proxied API responses keyed by endpoint name', async () => {
+    // Mock global fetch to return fake API data
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => ({
+      ok: true,
+      json: async () => ({ id: 'ABC123', source: url }),
+    });
+
+    // Mock pg and reload server
+    const Module = require('module');
+    const originalRequire = Module.prototype.require;
+
+    Module.prototype.require = function(id) {
+      if (id === 'pg') {
+        return {
+          Pool: class {
+            query() {
+              return { rows: [] };
+            }
+            end() {}
+          }
+        };
+      }
+      return originalRequire.apply(this, arguments);
+    };
+
+    delete require.cache[require.resolve('../server')];
+    const app = require('../server');
+    const res = await request(app, '/api/fps/ABC123');
+
+    // Restore original require
+    Module.prototype.require = originalRequire;
+    global.fetch = originalFetch;
+
+    assert.strictEqual(res.status, 200);
+    const endpointNames = config.fpsEndpoints.map((e) => e.name);
+    for (const name of endpointNames) {
+      assert.ok(res.body[name] !== undefined, `Expected key "${name}"`);
+    }
+  });
+});
