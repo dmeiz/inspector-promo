@@ -76,20 +76,48 @@ app.get('/api/fps/:id', async (req, res) => {
   const { id } = req.params;
   const provider = req.query.provider || '';
   const baseUrl = process.env.FPS_BASE_URL || '';
+
+  async function fetchJson(url) {
+    try {
+      const response = await fetch(url);
+      const data = response.ok ? await response.json() : { error: `HTTP ${response.status}` };
+      return { url, data };
+    } catch (err) {
+      return { url, data: { error: err.message } };
+    }
+  }
+
   try {
     const results = {};
+
+    // Standard product/provider endpoints
     const calls = config.fpsEndpoints.map(async ({ name, path }) => {
       const url = `${baseUrl}${path.replace('{id}', encodeURIComponent(id)).replace('{provider}', encodeURIComponent(provider))}`;
-      try {
-        const response = await fetch(url);
-        results[name] = response.ok
-          ? await response.json()
-          : { error: `HTTP ${response.status}`, url };
-      } catch (err) {
-        results[name] = { error: err.message, url };
-      }
+      results[name] = await fetchJson(url);
     });
-    await Promise.all(calls);
+
+    // Decorations: chained call — first look up mms_skus from FPDB, then call decorations
+    const decorationsCall = (async () => {
+      try {
+        const skuResult = await pool.query(
+          `SELECT DISTINCT mms_sku
+             FROM rawdata.fulfillment_products_service_fulfillment_promo_product_skus
+             WHERE product_id = $1 AND mms_sku IS NOT NULL`,
+          [id]
+        );
+        const mmsSkus = skuResult.rows.map((r) => r.mms_sku).filter(Boolean);
+        if (mmsSkus.length === 0) {
+          results['Decorations'] = { url: null, data: { error: 'No mms_skus found for product' } };
+          return;
+        }
+        const url = `${baseUrl}/api/v1/products/decorations?mms_skus=${encodeURIComponent(mmsSkus.join(','))}`;
+        results['Decorations'] = await fetchJson(url);
+      } catch (err) {
+        results['Decorations'] = { url: null, data: { error: err.message } };
+      }
+    })();
+
+    await Promise.all([...calls, decorationsCall]);
     res.json(results);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -100,10 +128,21 @@ app.get('/api/fps/:id', async (req, res) => {
 app.get('/api/links/:id', (req, res) => {
   const { id } = req.params;
   const styleId = req.query.style_id || id;
+  const provider = req.query.provider;
+
   const links = config.externalLinks.map(({ name, urlPattern }) => ({
     name,
     url: urlPattern.replace('{id}', id).replace('{style_id}', styleId),
   }));
+
+  const supplierPattern = provider && config.supplierLinks[provider];
+  if (supplierPattern) {
+    links.unshift({
+      name: `${provider} (supplier site)`,
+      url: supplierPattern.replace('{id}', id),
+    });
+  }
+
   res.json({ links });
 });
 

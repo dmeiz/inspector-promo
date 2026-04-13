@@ -265,15 +265,61 @@ module.exports = {
       name: 'SKU Details',
       path: '/api/v1/skus/details?provider_name={provider}&product_id={id}',
     },
+    {
+      name: 'Configurations',
+      path: '/api/v1/products/configurations?provider_name={provider}&product_id={id}',
+    },
+    {
+      name: 'Charges',
+      path: '/api/v1/products/charges?provider_name={provider}&product_id={id}',
+    },
+    {
+      name: 'Templates',
+      path: '/api/v1/products/templates?provider_name={provider}&product_id={id}',
+    },
+    {
+      name: 'Quantities',
+      path: '/api/v1/products/quantities?provider_name={provider}&product_id={id}',
+    },
+    {
+      name: 'Parts',
+      path: '/api/v1/products/parts?provider_name={provider}&product_id={id}',
+    },
+    {
+      name: 'Packages',
+      path: '/api/v1/products/packages?provider_name={provider}&product_id={id}',
+    },
   ],
 
-  // {style_id} is replaced with the style ID
+  // Universal links shown for every product.
+  // Placeholders: {id} = product_id, {style_id} = MMS style ID
   externalLinks: [
     {
       name: 'MMS',
       urlPattern: 'https://mms.example.com/styles/{style_id}',
     },
   ],
+
+  // Supplier product page / search URLs keyed by provider_name.
+  // Placeholder: {id} = product_id.
+  // Only displayed if the product's provider matches a key here.
+  supplierLinks: {
+    koozie: 'https://www.kooziegroup.com/searchai/?query={id}',
+    stregis: 'https://us.stregisgrp.com/channel/home-office/detail/{id}',
+    showdowndisplays: 'https://www.showdowndisplays.com/ProductSearch?SearchWords={id}&SearchType=ProductSearch',
+    hitpromo: 'https://www.hitpromo.net/search/product/{id}',
+    pcna: 'https://www.pcna.com/en-us/Search?SearchTerm={id}',
+    ariel: 'https://www.arielpremium.com/product/{id}',
+    snugz: 'https://snugzusa.com/product/{id}',
+    primeline: 'https://www.primeline.com/search?q={id}',
+    customink: 'https://www.customink.com/products/results?keyword={id}',
+    moderneglass: 'https://glassamerica.com/Product.cfm?ProductID={id}',
+    etsexpress: 'https://etsexpress.com/pg_product_detail/?id={id}',
+    hubpen: 'https://hubpen.com/?s={id}&post_type=product',
+    districtphoto: 'https://www.districtphoto.com/products/p/{id}',
+    magnet: 'https://themagnetgroup.com/shop?search={id}',
+    gemline: 'https://gemline.com/s/global-search/{id}',
+  },
 
   // Lookup: FPDB only. Search by product_id.
   // Returns: product_id, provider_name (as supplier_name), product_name

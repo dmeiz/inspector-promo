@@ -91,7 +91,7 @@ function showProduct(match) {
   const styleId = match.style_id;
   const provider = match.supplier_name;
 
-  fetchLinks(productId, styleId);
+  fetchLinks(productId, styleId, provider);
   fetchTabbedData('fpdb', productId, 'FPDB', renderTable);
   fetchTabbedData('fps', `${productId}?provider=${encodeURIComponent(provider)}`, 'FPS', renderJson);
   if (styleId) {
@@ -104,9 +104,12 @@ function showProduct(match) {
 
 // --- Links ---
 
-async function fetchLinks(productId, styleId) {
+async function fetchLinks(productId, styleId, provider) {
   try {
-    const params = styleId ? `?style_id=${encodeURIComponent(styleId)}` : '';
+    const qs = new URLSearchParams();
+    if (styleId) qs.set('style_id', styleId);
+    if (provider) qs.set('provider', provider);
+    const params = qs.toString() ? `?${qs.toString()}` : '';
     const res = await fetch(`/api/links/${encodeURIComponent(productId)}${params}`);
     const data = await res.json();
     if (!data.links || data.links.length === 0) {
@@ -274,6 +277,28 @@ function buildRow(row, columns) {
 
 function renderJson(pane, data) {
   pane.className += ' json-tree';
+
+  // Special case: server wraps FPS responses as { url, data }. Show URL on top.
+  if (data && typeof data === 'object' && 'url' in data && 'data' in data && Object.keys(data).length === 2) {
+    if (data.url) {
+      const urlBar = document.createElement('div');
+      urlBar.className = 'mb-2 small text-break';
+      const label = document.createElement('span');
+      label.className = 'text-muted me-2';
+      label.textContent = 'GET';
+      const link = document.createElement('a');
+      link.href = data.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = data.url;
+      urlBar.appendChild(label);
+      urlBar.appendChild(link);
+      pane.appendChild(urlBar);
+    }
+    pane.appendChild(renderJsonNode(data.data));
+    return;
+  }
+
   pane.appendChild(renderJsonNode(data));
 }
 
