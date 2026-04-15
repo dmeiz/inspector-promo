@@ -11,7 +11,7 @@ const pool = new Pool({
   host: process.env.REDSHIFT_HOST || 'redshift-production.db.customink.com',
   port: parseInt(process.env.REDSHIFT_PORT || '5439', 10),
   database: process.env.REDSHIFT_DATABASE || 'cink',
-  user: process.env.REDSHIFT_USER || process.env.REDSHIFT_USERNAME,
+  user: process.env.REDSHIFT_USER,
   password: process.env.REDSHIFT_PASSWORD,
   ssl: { rejectUnauthorized: false },
 });
