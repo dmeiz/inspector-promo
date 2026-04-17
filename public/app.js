@@ -572,6 +572,64 @@ function renderJsonNode(data) {
   return container;
 }
 
+// --- Recents (localStorage-backed) ---
+
+const RECENTS_KEY = 'inspector-promo.recent';
+const RECENTS_MAX = 10;
+
+function loadRecents() {
+  try {
+    const raw = localStorage.getItem(RECENTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecent(match) {
+  const entry = {
+    product_id: match.product_id,
+    supplier_name: match.supplier_name,
+    product_name: match.product_name,
+    style_id: match.style_id,
+  };
+  const existing = loadRecents().filter((e) => e.product_id !== entry.product_id);
+  const next = [entry, ...existing].slice(0, RECENTS_MAX);
+  localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
+  return next;
+}
+
+function renderRecents() {
+  const menu = document.getElementById('recents-menu');
+  const entries = loadRecents();
+  menu.innerHTML = '';
+  if (entries.length === 0) {
+    const li = document.createElement('li');
+    li.innerHTML = '<span class="dropdown-item disabled">No recent lookups</span>';
+    menu.appendChild(li);
+    return;
+  }
+  entries.forEach((e) => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'dropdown-item';
+    const parts = [e.product_id];
+    if (e.supplier_name) parts.push(e.supplier_name);
+    if (e.product_name) parts.push(e.product_name);
+    btn.textContent = parts.join(' — ');
+    btn.title = btn.textContent;
+    btn.addEventListener('click', () => {
+      input.value = e.product_id;
+      resetResults();
+      resultsEl.classList.remove('d-none');
+      doLookup(e.product_id);
+    });
+    li.appendChild(btn);
+    menu.appendChild(li);
+  });
+}
+
 function escapeHtml(str) {
   return str
     .replace(/&/g, '&amp;')
