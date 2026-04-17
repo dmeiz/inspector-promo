@@ -1,7 +1,6 @@
 const form = document.getElementById('lookup-form');
 const input = document.getElementById('product-id');
 const resultsEl = document.getElementById('results');
-const identityBrand = document.getElementById('identity-brand');
 const identityContent = document.getElementById('identity-content');
 const disambiguationEl = document.getElementById('disambiguation');
 const linksContent = document.getElementById('links-content');
@@ -45,7 +44,6 @@ form.addEventListener('submit', async (e) => {
 });
 
 function resetResults() {
-  identityBrand.textContent = '';
   identityContent.innerHTML = '';
   disambiguationEl.innerHTML = '';
   disambiguationEl.classList.add('d-none');
@@ -98,8 +96,6 @@ async function doLookup(id) {
 }
 
 function showProduct(match) {
-  identityBrand.textContent = match.product_id;
-
   const descParts = [];
   if (match.supplier_name) descParts.push(match.supplier_name);
   if (match.product_name) descParts.push(match.product_name);
