@@ -17,6 +17,10 @@ main {
   flex-shrink: 0;
 }
 
+.navbar-brand {
+  font-weight: 600;
+}
+
 /* === Accent color overrides === */
 .btn-primary {
   background-color: #e94560;
@@ -27,10 +31,6 @@ main {
 .btn-primary:active {
   background-color: #c73e54;
   border-color: #c73e54;
-}
-
-.nav-pills .nav-link.active {
-  background-color: #e94560;
 }
 
 .nav-tabs .nav-link.active {
@@ -93,8 +93,9 @@ main {
   padding: 0.25rem 0.6rem;
 }
 
-#fpdb-tab-nav .nav-pills .nav-link.active {
-  background-color: #e94560;
+#fpdb-tab-nav .nav-tabs .nav-link {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.6rem;
 }
 
 /* === Sticky table headers === */

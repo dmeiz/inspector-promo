@@ -1,6 +1,7 @@
 const form = document.getElementById('lookup-form');
 const input = document.getElementById('product-id');
 const resultsEl = document.getElementById('results');
+const identityBrand = document.getElementById('identity-brand');
 const identityContent = document.getElementById('identity-content');
 const disambiguationEl = document.getElementById('disambiguation');
 const linksContent = document.getElementById('links-content');
@@ -44,6 +45,7 @@ form.addEventListener('submit', async (e) => {
 });
 
 function resetResults() {
+  identityBrand.textContent = '';
   identityContent.innerHTML = '';
   disambiguationEl.innerHTML = '';
   disambiguationEl.classList.add('d-none');
@@ -96,11 +98,13 @@ async function doLookup(id) {
 }
 
 function showProduct(match) {
-  const parts = [`<b>${match.product_id}</b>`];
-  if (match.supplier_name) parts.push(match.supplier_name);
-  if (match.product_name) parts.push(match.product_name);
-  if (match.style_id) parts.push(`Style: ${match.style_id}`);
-  identityContent.innerHTML = parts.join(' &middot; ');
+  identityBrand.textContent = match.product_id;
+
+  const descParts = [];
+  if (match.supplier_name) descParts.push(match.supplier_name);
+  if (match.product_name) descParts.push(match.product_name);
+  if (match.style_id) descParts.push(`Style: ${match.style_id}`);
+  identityContent.textContent = descParts.join(' · ');
 
   const productId = match.product_id;
   const styleId = match.style_id;
@@ -345,7 +349,7 @@ function fetchGroupedTabbedData(key, idAndParams, label, renderFn, groups) {
         const li = document.createElement('li');
         li.className = 'nav-item';
         const btn = document.createElement('button');
-        btn.className = `nav-link${idx === 0 ? ' active' : ''}`;
+        btn.className = `nav-link btn btn-secondary${idx === 0 ? ' active' : ''}`;
         btn.textContent = groupDef.group;
         btn.addEventListener('click', () => activateGroup(groupDef));
         li.appendChild(btn);
