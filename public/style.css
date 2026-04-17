@@ -80,6 +80,9 @@ main {
 .tab-content {
   flex: 1;
   overflow: auto;
+}
+
+#s3-tab-content, #fps-tab-content {
   padding: 0.5rem 0 0.5rem 1rem;
 }
 
