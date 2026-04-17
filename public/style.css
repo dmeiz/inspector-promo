@@ -93,7 +93,7 @@ main {
   padding: 0.25rem 0.6rem;
 }
 
-#fpdb-tab-nav .nav-tabs .nav-link {
+.nav-tabs .nav-link {
   font-size: 0.8rem;
   padding: 0.25rem 0.6rem;
 }

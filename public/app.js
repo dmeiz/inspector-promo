@@ -261,7 +261,7 @@ function fetchGroupedTabbedData(key, idAndParams, label, renderFn, groups) {
 
       // Build group nav (top row) and sub-tab nav (bottom row)
       const groupNav = document.createElement('ul');
-      groupNav.className = 'nav nav-pills mb-2';
+      groupNav.className = 'nav nav-pills justify-content-center';
       tabNavEl.appendChild(groupNav);
 
       const subTabNav = document.createElement('ul');
