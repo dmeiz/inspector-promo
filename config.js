@@ -331,6 +331,25 @@ module.exports = {
     gemline: 'https://gemline.com/s/global-search/{id}',
   },
 
+  // Tab ordering — controls display order for each section.
+  // FPDB uses grouped tabs (two-level nav). Others use flat ordering.
+  fpdbGroups: [
+    { group: 'Product', tabs: ['Products', 'Aux Details', 'Categories', 'Related Products'] },
+    { group: 'Parts & Colors', tabs: ['Parts', 'Part Colors', 'Parts Locations'] },
+    { group: 'Pricing', tabs: ['Prices'] },
+    { group: 'Inventory', tabs: ['Inventory', 'Inventory Locations', 'Future Inventory'] },
+    { group: 'Packaging', tabs: ['Part Packages', 'Shipping Packages'] },
+    { group: 'Configuration', tabs: ['Configurations', 'Config Parts', 'Config Charges'] },
+    { group: 'Media', tabs: ['Media', 'Media Class Types'] },
+    { group: 'Fulfillment', tabs: ['Promo SKUs', 'Promo Views', 'FOBs'] },
+  ],
+
+  fpsTabOrder: ['Product', 'Inventory', 'SKU Details', 'Configurations', 'Charges', 'Decorations', 'Templates', 'Quantities', 'Parts', 'Packages'],
+
+  mmsTabOrder: ['Style', 'Colors', 'SKUs'],
+
+  s3TabOrder: ['Product', 'Inventory', 'Media Images', 'Media Documents', 'Config'],
+
   // Lookup: FPDB only. Search by product_id.
   // Returns: product_id, provider_name (as supplier_name), product_name
   lookupSql: `SELECT DISTINCT

@@ -5,6 +5,21 @@ const identityContent = document.getElementById('identity-content');
 const disambiguationEl = document.getElementById('disambiguation');
 const linksContent = document.getElementById('links-content');
 
+// Tab ordering config
+const FPDB_GROUPS = [
+  { group: 'Product', tabs: ['Products', 'Aux Details', 'Categories', 'Related Products'] },
+  { group: 'Parts & Colors', tabs: ['Parts', 'Part Colors', 'Parts Locations'] },
+  { group: 'Pricing', tabs: ['Prices'] },
+  { group: 'Inventory', tabs: ['Inventory', 'Inventory Locations', 'Future Inventory'] },
+  { group: 'Packaging', tabs: ['Part Packages', 'Shipping Packages'] },
+  { group: 'Configuration', tabs: ['Configurations', 'Config Parts', 'Config Charges'] },
+  { group: 'Media', tabs: ['Media', 'Media Class Types'] },
+  { group: 'Fulfillment', tabs: ['Promo SKUs', 'Promo Views', 'FOBs'] },
+];
+const FPS_TAB_ORDER = ['Product', 'Inventory', 'SKU Details', 'Configurations', 'Charges', 'Decorations', 'Templates', 'Quantities', 'Parts', 'Packages'];
+const MMS_TAB_ORDER = ['Style', 'Colors', 'SKUs'];
+const S3_TAB_ORDER = ['Product', 'Inventory', 'Media Images', 'Media Documents', 'Config'];
+
 // Left nav
 const navButtons = document.querySelectorAll('#left-nav .nav-link');
 const sections = document.querySelectorAll('.content-section');
@@ -92,11 +107,11 @@ function showProduct(match) {
   const provider = match.supplier_name;
 
   fetchLinks(productId, styleId, provider);
-  fetchTabbedData('fpdb', productId, 'FPDB', renderTable);
-  fetchTabbedData('fps', `${productId}?provider=${encodeURIComponent(provider)}`, 'FPS', renderJson);
-  fetchTabbedData('s3', `${provider}/${productId}`, 'S3', renderJson);
+  fetchGroupedTabbedData('fpdb', productId, 'FPDB', renderTable, FPDB_GROUPS);
+  fetchTabbedData('fps', `${productId}?provider=${encodeURIComponent(provider)}`, 'FPS', renderJson, FPS_TAB_ORDER);
+  fetchTabbedData('s3', `${provider}/${productId}`, 'S3', renderJson, S3_TAB_ORDER);
   if (styleId) {
-    fetchTabbedData('mms', styleId, 'MMS', renderTable);
+    fetchTabbedData('mms', styleId, 'MMS', renderTable, MMS_TAB_ORDER);
   } else {
     document.getElementById('mms-tab-content').innerHTML =
       '<span class="text-muted fst-italic">No style ID available — MMS data requires a style ID</span>';
@@ -137,9 +152,9 @@ async function fetchLinks(productId, styleId, provider) {
   }
 }
 
-// --- Tabbed data fetcher (shared by FPDB, FPS, MMS) ---
+// --- Tabbed data fetcher (shared by FPS, MMS, S3) ---
 
-function fetchTabbedData(key, idAndParams, label, renderFn) {
+function fetchTabbedData(key, idAndParams, label, renderFn, tabOrder) {
   const loadingEl = document.getElementById(`${key}-loading`);
   const tabNavEl = document.getElementById(`${key}-tab-nav`);
   const tabContentEl = document.getElementById(`${key}-tab-content`);
@@ -160,7 +175,16 @@ function fetchTabbedData(key, idAndParams, label, renderFn) {
         return;
       }
 
-      const entries = Object.entries(data);
+      // Order entries: tabOrder first (in order), then any extras
+      let entries;
+      if (tabOrder) {
+        const ordered = tabOrder.filter((name) => name in data).map((name) => [name, data[name]]);
+        const extras = Object.entries(data).filter(([name]) => !tabOrder.includes(name));
+        entries = [...ordered, ...extras];
+      } else {
+        entries = Object.entries(data);
+      }
+
       if (entries.length === 0) {
         tabContentEl.innerHTML = `<span class="text-muted fst-italic">No ${label} data</span>`;
         return;
@@ -169,7 +193,6 @@ function fetchTabbedData(key, idAndParams, label, renderFn) {
       const panes = {};
 
       entries.forEach(([name, responseData], idx) => {
-        // Tab button inside nav-item
         const li = document.createElement('li');
         li.className = 'nav-item';
         const btn = document.createElement('button');
@@ -179,7 +202,6 @@ function fetchTabbedData(key, idAndParams, label, renderFn) {
         li.appendChild(btn);
         tabNavEl.appendChild(li);
 
-        // Pane
         const pane = document.createElement('div');
         pane.className = `tab-pane${idx === 0 ? ' active' : ''}`;
         renderFn(pane, responseData);
@@ -197,6 +219,142 @@ function fetchTabbedData(key, idAndParams, label, renderFn) {
           p.style.display = n === name ? '' : 'none';
           p.classList.toggle('active', n === name);
         });
+      }
+    })
+    .catch((err) => {
+      loadingEl.classList.add('d-none');
+      tabContentEl.innerHTML = `<div class="alert alert-danger">Failed to load ${label} data: ${err.message}</div>`;
+    });
+}
+
+// --- Grouped tabbed data fetcher (for FPDB) ---
+
+function fetchGroupedTabbedData(key, idAndParams, label, renderFn, groups) {
+  const loadingEl = document.getElementById(`${key}-loading`);
+  const tabNavEl = document.getElementById(`${key}-tab-nav`);
+  const tabContentEl = document.getElementById(`${key}-tab-content`);
+
+  loadingEl.classList.remove('d-none');
+  tabNavEl.innerHTML = '';
+  tabContentEl.innerHTML = '';
+
+  const url = `/api/${key}/${idAndParams}`;
+
+  fetch(url)
+    .then((res) => res.json())
+    .then((data) => {
+      loadingEl.classList.add('d-none');
+
+      if (data.error) {
+        tabContentEl.innerHTML = `<div class="alert alert-danger">${label} error: ${data.error}</div>`;
+        return;
+      }
+
+      if (Object.keys(data).length === 0) {
+        tabContentEl.innerHTML = `<span class="text-muted fst-italic">No ${label} data</span>`;
+        return;
+      }
+
+      // Build group nav (top row) and sub-tab nav (bottom row)
+      const groupNav = document.createElement('ul');
+      groupNav.className = 'nav nav-pills mb-2';
+      tabNavEl.appendChild(groupNav);
+
+      const subTabNav = document.createElement('ul');
+      subTabNav.className = 'nav nav-tabs';
+      tabNavEl.appendChild(subTabNav);
+
+      const panes = {};
+      let activeTab = null;
+
+      // Collect any data keys not in any group
+      const allGroupedTabs = groups.flatMap((g) => g.tabs);
+      const ungrouped = Object.keys(data).filter((k) => !allGroupedTabs.includes(k));
+      const effectiveGroups = [...groups];
+      if (ungrouped.length > 0) {
+        effectiveGroups.push({ group: 'Other', tabs: ungrouped });
+      }
+
+      // Pre-render all panes
+      for (const [name, responseData] of Object.entries(data)) {
+        const pane = document.createElement('div');
+        pane.className = 'tab-pane';
+        renderFn(pane, responseData);
+        pane.style.display = 'none';
+        tabContentEl.appendChild(pane);
+        panes[name] = pane;
+      }
+
+      function activateGroup(groupDef) {
+        // Update group nav
+        for (const li of groupNav.children) {
+          const btn = li.querySelector('.nav-link');
+          btn.classList.toggle('active', btn.textContent === groupDef.group);
+        }
+
+        // Rebuild sub-tab nav for this group
+        subTabNav.innerHTML = '';
+        const availableTabs = groupDef.tabs.filter((t) => t in data);
+        let firstActivated = false;
+
+        availableTabs.forEach((name) => {
+          const li = document.createElement('li');
+          li.className = 'nav-item';
+          const btn = document.createElement('button');
+          btn.className = 'nav-link';
+          btn.textContent = name;
+          btn.addEventListener('click', () => activateTab(name));
+          li.appendChild(btn);
+          subTabNav.appendChild(li);
+
+          if (!firstActivated) {
+            btn.classList.add('active');
+            activateTab(name);
+            firstActivated = true;
+          }
+        });
+
+        if (!firstActivated) {
+          // No tabs with data in this group
+          Object.values(panes).forEach((p) => (p.style.display = 'none'));
+          tabContentEl.querySelector('.tab-pane-empty')?.remove();
+          const empty = document.createElement('div');
+          empty.className = 'tab-pane-empty text-muted fst-italic';
+          empty.textContent = 'No data in this group';
+          tabContentEl.appendChild(empty);
+        }
+      }
+
+      function activateTab(name) {
+        activeTab = name;
+        // Update sub-tab buttons
+        for (const li of subTabNav.children) {
+          const btn = li.querySelector('.nav-link');
+          btn.classList.toggle('active', btn.textContent === name);
+        }
+        // Show/hide panes
+        tabContentEl.querySelector('.tab-pane-empty')?.remove();
+        Object.entries(panes).forEach(([n, p]) => {
+          p.style.display = n === name ? '' : 'none';
+          p.classList.toggle('active', n === name);
+        });
+      }
+
+      // Render group buttons
+      effectiveGroups.forEach((groupDef, idx) => {
+        const li = document.createElement('li');
+        li.className = 'nav-item';
+        const btn = document.createElement('button');
+        btn.className = `nav-link${idx === 0 ? ' active' : ''}`;
+        btn.textContent = groupDef.group;
+        btn.addEventListener('click', () => activateGroup(groupDef));
+        li.appendChild(btn);
+        groupNav.appendChild(li);
+      });
+
+      // Activate first group
+      if (effectiveGroups.length > 0) {
+        activateGroup(effectiveGroups[0]);
       }
     })
     .catch((err) => {

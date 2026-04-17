@@ -83,6 +83,20 @@ main {
   padding: 0.5rem 0 0.5rem 1rem;
 }
 
+/* === FPDB group pills === */
+#fpdb-tab-nav .nav-pills .nav-link {
+  margin:0.25rem
+}
+
+#fpdb-tab-nav .nav-pills .nav-link {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.6rem;
+}
+
+#fpdb-tab-nav .nav-pills .nav-link.active {
+  background-color: #e94560;
+}
+
 /* === Sticky table headers === */
 .table th {
   position: sticky;
