@@ -10,13 +10,19 @@
 <body>
   <nav class="navbar navbar-expand navbar-dark">
     <div class="container-fluid gap-3">
-      <a class="navbar-brand" id="identity-brand" href="/"></a>
       <span id="identity-content" class="navbar-text me-auto"></span>
       <span id="disambiguation" class="navbar-text d-none me-3"></span>
       <form id="lookup-form" class="d-flex gap-2" role="search">
         <input type="text" id="product-id" class="form-control form-control-sm" placeholder="Enter product ID or style ID" autofocus>
-        <button type="submit" class="btn btn-primary btn-sm text-nowrap">Look Up</button>
       </form>
+      <div class="dropdown">
+        <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button"
+          id="recents-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+          Recents
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" id="recents-menu"
+          aria-labelledby="recents-toggle"></ul>
+      </div>
     </div>
   </nav>
 
