@@ -260,7 +260,7 @@ module.exports = {
            sz.status AS size_status, sz.gtin, sz.in_stock,
            sz.last_known_supplier_quantity, sz.oos_threshold,
            sk.status AS sku_status,
-           u.supplier_id, u.uid, u.part_group
+           u.supplier_id, u.uid
     FROM rawdata.mms_colors c
     JOIN rawdata.mms_sizes sz ON sz.color_id = c.id
     LEFT JOIN rawdata.mms_skus sk
