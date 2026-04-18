@@ -38,7 +38,11 @@
     <div id="content-area">
       <!-- Links -->
       <section id="links-section" class="content-section">
-        <div id="links-content"></div>
+        <div id="links-loading" class="d-none">
+          <span class="spinner-border spinner-border-sm me-2"></span>Loading links...
+        </div>
+        <ul id="links-tab-nav" class="nav nav-tabs"></ul>
+        <div id="links-tab-content" class="tab-content"></div>
       </section>
 
       <!-- FPDB Data -->
@@ -79,6 +83,8 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="render.js"></script>
+  <script src="sections.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
